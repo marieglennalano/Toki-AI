@@ -2,8 +2,6 @@
 
 Toki is a sleek, voice-enabled AI assistant powered by Groq + LLaMA3. Designed with a ChatGPT-like experience, it supports real-time conversations, chat history, and dark mode — all within a clean React + Tailwind CSS interface.
 
-![Toki Banner](https://via.placeholder.com/1200x400?text=Toki+AI+Assistant)
-
 ---
 
 ## 🚀 Live Demo
