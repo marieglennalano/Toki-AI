@@ -1,14 +1,33 @@
 import React, { useEffect, useRef, useState } from 'react';
 import Message from './components/Message';
 
-function App() {
+const App = () => {
   const [messages, setMessages] = useState([
     { sender: 'ai', text: "Hello! I'm Toki-AI. How can I assist you today?" },
   ]);
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
+  const [listening, setListening] = useState(false);
   const endOfMessagesRef = useRef(null);
+
+  const SpeechRecognition =
+    window.SpeechRecognition || window.webkitSpeechRecognition;
+  const recognition = SpeechRecognition ? new SpeechRecognition() : null;
+
+  // Configure speech recognition
+  if (recognition) {
+    recognition.continuous = false;
+    recognition.interimResults = false;
+    recognition.lang = 'en-US';
+
+    recognition.onstart = () => setListening(true);
+    recognition.onend = () => setListening(false);
+    recognition.onresult = (event) => {
+      const transcript = event.results[0][0].transcript;
+      setInput(transcript);
+    };
+  }
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -28,10 +47,16 @@ function App() {
     }, 1000);
   };
 
-  // Auto-scroll to bottom when new messages appear
+  // Auto-scroll
   useEffect(() => {
     endOfMessagesRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isTyping]);
+
+  const startListening = () => {
+    if (recognition && !listening) {
+      recognition.start();
+    }
+  };
 
   return (
     <div className={`${darkMode ? 'dark' : ''}`}>
@@ -52,7 +77,7 @@ function App() {
 
         {/* Chat Area */}
         <main className="flex-1 flex flex-col">
-          {/* Chat Messages */}
+          {/* Messages */}
           <div className="flex-1 overflow-y-auto p-4 space-y-2 bg-white dark:bg-gray-900">
             {messages.map((msg, idx) => (
               <Message key={idx} sender={msg.sender} text={msg.text} />
@@ -65,16 +90,25 @@ function App() {
             <div ref={endOfMessagesRef} />
           </div>
 
-          {/* Chat Input */}
+          {/* Input Box */}
           <div className="p-4 border-t bg-gray-100 dark:bg-gray-800">
-            <form className="flex" onSubmit={handleSubmit}>
+            <form className="flex gap-2" onSubmit={handleSubmit}>
               <input
                 type="text"
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 placeholder="Type your message..."
-                className="flex-1 p-2 border rounded mr-2 dark:bg-gray-700 dark:text-white"
+                className="flex-1 p-2 border rounded dark:bg-gray-700 dark:text-white"
               />
+              <button
+                type="button"
+                onClick={startListening}
+                className={`px-4 py-2 rounded ${
+                  listening ? 'bg-red-500' : 'bg-green-500'
+                } text-white`}
+              >
+                🎤
+              </button>
               <button
                 type="submit"
                 className="px-4 py-2 bg-blue-500 text-white rounded"
@@ -82,11 +116,14 @@ function App() {
                 Send
               </button>
             </form>
+            {listening && (
+              <p className="text-xs text-gray-500 mt-1">Listening...</p>
+            )}
           </div>
         </main>
       </div>
     </div>
   );
-}
+};
 
 export default App;
