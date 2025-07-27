@@ -3,7 +3,10 @@ import Message from './components/Message';
 
 const App = () => {
   const [messages, setMessages] = useState([
-    { sender: 'ai', text: "Hello! I'm Toki-AI. How can I assist you today?" },
+    {
+      role: 'assistant',
+      content: "Hello! I'm Toki-AI. How can I assist you today?",
+    },
   ]);
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
@@ -15,12 +18,10 @@ const App = () => {
     window.SpeechRecognition || window.webkitSpeechRecognition;
   const recognition = SpeechRecognition ? new SpeechRecognition() : null;
 
-  // Configure speech recognition
   if (recognition) {
     recognition.continuous = false;
     recognition.interimResults = false;
     recognition.lang = 'en-US';
-
     recognition.onstart = () => setListening(true);
     recognition.onend = () => setListening(false);
     recognition.onresult = (event) => {
@@ -29,33 +30,50 @@ const App = () => {
     };
   }
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     const trimmed = input.trim();
     if (!trimmed) return;
 
-    setMessages((prev) => [...prev, { sender: 'user', text: trimmed }]);
+    const updatedMessages = [
+      { role: 'system', content: 'You are a helpful assistant named Toki-AI.' },
+      ...messages,
+      { role: 'user', content: trimmed },
+    ];
+
+    setMessages((prev) => [...prev, { role: 'user', content: trimmed }]);
     setInput('');
     setIsTyping(true);
 
-    setTimeout(() => {
+    try {
+      const response = await fetch('http://localhost:5000/api/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ messages: updatedMessages }),
+      });
+
+      const data = await response.json();
+      const reply = data.reply || "Hmm... I didn't quite get that.";
+      setMessages((prev) => [...prev, { role: 'assistant', content: reply }]);
+    } catch (err) {
+      console.error('Backend Error:', err);
       setMessages((prev) => [
         ...prev,
-        { sender: 'ai', text: "I'm still learning. But I hear you!" },
+        { role: 'assistant', content: '⚠️ Something went wrong. Try again.' },
       ]);
+    } finally {
       setIsTyping(false);
-    }, 1000);
+    }
   };
 
-  // Auto-scroll
   useEffect(() => {
     endOfMessagesRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isTyping]);
 
   const startListening = () => {
-    if (recognition && !listening) {
-      recognition.start();
-    }
+    if (recognition && !listening) recognition.start();
   };
 
   return (
@@ -77,10 +95,13 @@ const App = () => {
 
         {/* Chat Area */}
         <main className="flex-1 flex flex-col">
-          {/* Messages */}
           <div className="flex-1 overflow-y-auto p-4 space-y-2 bg-white dark:bg-gray-900">
             {messages.map((msg, idx) => (
-              <Message key={idx} sender={msg.sender} text={msg.text} />
+              <Message
+                key={idx}
+                sender={msg.role === 'user' ? 'user' : 'ai'}
+                text={msg.content}
+              />
             ))}
             {isTyping && (
               <div className="italic text-sm text-gray-500 dark:text-gray-400">
