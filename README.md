@@ -91,7 +91,12 @@ POST to `http://localhost:5000/api/chat`
 with JSON body:
 ```json
 {
-  "message": "Hello, what can you do?"
+  "messages": [
+    {
+      "role": "user",
+      "content": "Hello, what can you do?"
+    }
+  ]
 }
 ```
 
