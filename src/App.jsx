@@ -1,35 +1,43 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import React from 'react';
 
 function App() {
-  const [count, setCount] = useState(0)
-
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
+    <div className="h-screen w-screen flex overflow-hidden">
+      {/* Sidebar */}
+      <aside className="w-64 bg-gray-200 p-4">
+        <h1 className="text-2xl font-bold mb-4">Toki-AI</h1>
+        <button className="w-full py-2 px-4 bg-blue-500 text-white rounded">
+          + New Chat
         </button>
-        <p>
-          Edit <code>src/App.jsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
+      </aside>
+
+      {/* Chat Area */}
+      <main className="flex-1 flex flex-col">
+        {/* Chat Messages */}
+        <div className="flex-1 overflow-y-auto p-4 bg-white">
+          {/* Messages will go here */}
+          <p className="text-gray-500 text-center mt-10">No messages yet</p>
+        </div>
+
+        {/* Chat Input */}
+        <div className="p-4 border-t bg-gray-100">
+          <form className="flex">
+            <input
+              type="text"
+              placeholder="Type your message..."
+              className="flex-1 p-2 border rounded mr-2"
+            />
+            <button
+              type="submit"
+              className="px-4 py-2 bg-blue-500 text-white rounded"
+            >
+              Send
+            </button>
+          </form>
+        </div>
+      </main>
+    </div>
+  );
 }
 
-export default App
+export default App;
