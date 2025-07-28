@@ -4,20 +4,26 @@ import TypingIndicator from './components/TypingIndicator';
 import Sidebar from './components/Sidebar';
 
 const App = () => {
-  const [messages, setMessages] = useState([
+  const [conversations, setConversations] = useState([
     {
-      role: 'assistant',
-      content: "Hello! I'm Toki-AI. How can I assist you today?",
+      id: 1,
+      title: 'Welcome Chat',
+      messages: [
+        {
+          role: 'assistant',
+          content: "Hello! I'm Toki. How can I assist you today?",
+        },
+      ],
     },
   ]);
+  const [activeChatId, setActiveChatId] = useState(1);
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
   const [listening, setListening] = useState(false);
   const endOfMessagesRef = useRef(null);
 
-  const SpeechRecognition =
-    window.SpeechRecognition || window.webkitSpeechRecognition;
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
   const recognition = SpeechRecognition ? new SpeechRecognition() : null;
 
   if (recognition) {
@@ -32,18 +38,27 @@ const App = () => {
     };
   }
 
+  const activeChat = conversations.find((chat) => chat.id === activeChatId);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     const trimmed = input.trim();
-    if (!trimmed) return;
+    if (!trimmed || !activeChat) return;
 
+    const userMessage = { role: 'user', content: trimmed };
     const updatedMessages = [
       { role: 'system', content: 'You are a helpful assistant named Toki-AI.' },
-      ...messages,
-      { role: 'user', content: trimmed },
+      ...activeChat.messages,
+      userMessage,
     ];
 
-    setMessages((prev) => [...prev, { role: 'user', content: trimmed }]);
+    const updatedConversations = conversations.map((chat) =>
+      chat.id === activeChatId
+        ? { ...chat, messages: [...chat.messages, userMessage] }
+        : chat
+    );
+
+    setConversations(updatedConversations);
     setInput('');
     setIsTyping(true);
 
@@ -56,21 +71,54 @@ const App = () => {
 
       const data = await response.json();
       const reply = data.reply || "Hmm... I didn't quite get that.";
-      setMessages((prev) => [...prev, { role: 'assistant', content: reply }]);
+      const assistantMessage = { role: 'assistant', content: reply };
+
+      setConversations((prev) =>
+        prev.map((chat) =>
+          chat.id === activeChatId
+            ? { ...chat, messages: [...chat.messages, assistantMessage] }
+            : chat
+        )
+      );
     } catch (err) {
       console.error('Backend Error:', err);
-      setMessages((prev) => [
-        ...prev,
-        { role: 'assistant', content: '⚠️ Something went wrong. Try again.' },
-      ]);
+      setConversations((prev) =>
+        prev.map((chat) =>
+          chat.id === activeChatId
+            ? {
+                ...chat,
+                messages: [
+                  ...chat.messages,
+                  { role: 'assistant', content: '⚠️ Something went wrong. Try again.' },
+                ],
+              }
+            : chat
+        )
+      );
     } finally {
       setIsTyping(false);
     }
   };
 
+  const handleNewChat = () => {
+    const newId = Date.now();
+    const newChat = {
+      id: newId,
+      title: `Chat #${conversations.length + 1}`,
+      messages: [
+        {
+          role: 'assistant',
+          content: "Hello! I'm Toki. How can I assist you today?",
+        },
+      ],
+    };
+    setConversations((prev) => [...prev, newChat]);
+    setActiveChatId(newId);
+  };
+
   useEffect(() => {
     endOfMessagesRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, isTyping]);
+  }, [activeChat?.messages, isTyping]);
 
   const startListening = () => {
     if (recognition && !listening) recognition.start();
@@ -79,14 +127,19 @@ const App = () => {
   return (
     <div className={darkMode ? 'dark' : ''}>
       <div className="flex h-screen bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-white">
-        {/* Sidebar */}
-        <Sidebar darkMode={darkMode} setDarkMode={setDarkMode} />
+        <Sidebar
+          darkMode={darkMode}
+          setDarkMode={setDarkMode}
+          onNewChat={handleNewChat}
+          conversations={conversations}
+          activeChatId={activeChatId}
+          setActiveChatId={setActiveChatId}
+        />
 
-        {/* Chat Area */}
         <main className="flex-1 flex flex-col">
-          {/* Chat Messages */}
-          <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
-            {messages.map((msg, idx) => (
+          {/* Message Display */}
+          <section className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
+            {activeChat?.messages.map((msg, idx) => (
               <Message
                 key={idx}
                 sender={msg.role === 'user' ? 'user' : 'ai'}
@@ -95,10 +148,10 @@ const App = () => {
             ))}
             {isTyping && <TypingIndicator />}
             <div ref={endOfMessagesRef} />
-          </div>
+          </section>
 
           {/* Chat Input */}
-          <div className="p-4 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700">
+          <footer className="p-4 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700">
             <form onSubmit={handleSubmit} className="flex gap-2 items-center">
               <input
                 type="text"
@@ -106,11 +159,13 @@ const App = () => {
                 onChange={(e) => setInput(e.target.value)}
                 placeholder="Type your message..."
                 className="flex-1 p-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-400"
+                aria-label="Message input"
               />
               <button
                 type="button"
                 onClick={startListening}
-                title="Voice Input"
+                title="Start voice input"
+                aria-pressed={listening}
                 className={`px-4 py-2 rounded-lg text-white transition ${
                   listening
                     ? 'bg-red-500 hover:bg-red-600'
@@ -127,9 +182,9 @@ const App = () => {
               </button>
             </form>
             {listening && (
-              <p className="text-xs text-gray-500 mt-1 ml-1">Listening…</p>
+              <p className="text-xs text-gray-500 mt-1 ml-1">🎙️ Listening…</p>
             )}
-          </div>
+          </footer>
         </main>
       </div>
     </div>
