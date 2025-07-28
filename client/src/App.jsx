@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import Message from './components/Message';
 import TypingIndicator from './components/TypingIndicator';
+import Sidebar from './components/Sidebar';
 
 const App = () => {
   const [messages, setMessages] = useState([
@@ -49,9 +50,7 @@ const App = () => {
     try {
       const response = await fetch('http://localhost:5000/api/chat', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ messages: updatedMessages }),
       });
 
@@ -78,27 +77,15 @@ const App = () => {
   };
 
   return (
-    <div className={`${darkMode ? 'dark' : ''}`}>
-      <div className="h-screen w-screen flex overflow-hidden dark:bg-gray-900 dark:text-white font-sans">
+    <div className={darkMode ? 'dark' : ''}>
+      <div className="flex h-screen bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-white">
         {/* Sidebar */}
-        <aside className="w-64 bg-gray-100 dark:bg-gray-800 p-4 flex flex-col justify-between">
-          <div>
-            <h1 className="text-2xl font-extrabold mb-6 tracking-tight text-blue-600 dark:text-blue-400">Toki-AI</h1>
-            <button className="w-full py-2 px-4 bg-blue-500 text-white font-medium rounded-lg hover:bg-blue-600 transition mb-4">
-              + New Chat
-            </button>
-          </div>
-          <button
-            onClick={() => setDarkMode(!darkMode)}
-            className="w-full py-2 px-4 border border-blue-500 rounded-lg text-blue-500 hover:bg-blue-500 hover:text-white transition font-medium"
-          >
-            Toggle Dark Mode
-          </button>
-        </aside>
+        <Sidebar darkMode={darkMode} setDarkMode={setDarkMode} />
 
         {/* Chat Area */}
-        <main className="flex-1 flex flex-col bg-white dark:bg-gray-900">
-          <div className="flex-1 overflow-y-auto px-6 py-4 space-y-3">
+        <main className="flex-1 flex flex-col">
+          {/* Chat Messages */}
+          <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
             {messages.map((msg, idx) => (
               <Message
                 key={idx}
@@ -110,21 +97,24 @@ const App = () => {
             <div ref={endOfMessagesRef} />
           </div>
 
-          {/* Input Box */}
-          <div className="p-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
-            <form className="flex gap-2 items-center" onSubmit={handleSubmit}>
+          {/* Chat Input */}
+          <div className="p-4 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700">
+            <form onSubmit={handleSubmit} className="flex gap-2 items-center">
               <input
                 type="text"
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 placeholder="Type your message..."
-                className="flex-1 p-2 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-400"
+                className="flex-1 p-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-400"
               />
               <button
                 type="button"
                 onClick={startListening}
+                title="Voice Input"
                 className={`px-4 py-2 rounded-lg text-white transition ${
-                  listening ? 'bg-red-500 hover:bg-red-600' : 'bg-green-500 hover:bg-green-600'
+                  listening
+                    ? 'bg-red-500 hover:bg-red-600'
+                    : 'bg-green-500 hover:bg-green-600'
                 }`}
               >
                 🎤
