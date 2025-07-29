@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import Message from './components/Message';
 import TypingIndicator from './components/TypingIndicator';
 import Sidebar from './components/Sidebar';
+import { IoMdMic } from 'react-icons/io';
 
 const App = () => {
   const [conversations, setConversations] = useState([
@@ -21,6 +22,7 @@ const App = () => {
   const [isTyping, setIsTyping] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
   const [listening, setListening] = useState(false);
+  const [transcript, setTranscript] = useState('');
   const endOfMessagesRef = useRef(null);
 
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -28,13 +30,30 @@ const App = () => {
 
   if (recognition) {
     recognition.continuous = false;
-    recognition.interimResults = false;
+    recognition.interimResults = true;
     recognition.lang = 'en-US';
-    recognition.onstart = () => setListening(true);
-    recognition.onend = () => setListening(false);
+
+    recognition.onstart = () => {
+      setListening(true);
+      setTranscript('');
+    };
+
+    recognition.onend = () => {
+      setListening(false);
+    };
+
     recognition.onresult = (event) => {
-      const transcript = event.results[0][0].transcript;
-      setInput(transcript);
+      let liveTranscript = '';
+      for (let i = event.resultIndex; i < event.results.length; ++i) {
+        liveTranscript += event.results[i][0].transcript;
+      }
+      setTranscript(liveTranscript);
+
+      // Final result sets input
+      if (event.results[event.resultIndex].isFinal) {
+        setInput(liveTranscript);
+        setTranscript('');
+      }
     };
   }
 
@@ -124,9 +143,21 @@ const App = () => {
     if (recognition && !listening) recognition.start();
   };
 
+  const stopListening = () => {
+    if (recognition && listening) recognition.stop();
+  };
+
+  const toggleListening = () => {
+    if (listening) {
+      stopListening();
+    } else {
+      startListening();
+    }
+  };
+
   return (
     <div className={darkMode ? 'dark' : ''}>
-      <div className="flex h-screen bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-white">
+      <div className="flex h-screen bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-white relative">
         <Sidebar
           darkMode={darkMode}
           setDarkMode={setDarkMode}
@@ -150,6 +181,13 @@ const App = () => {
             <div ref={endOfMessagesRef} />
           </section>
 
+          {/* Floating Transcript Display */}
+          {listening && transcript && (
+            <div className="absolute bottom-24 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white px-4 py-2 rounded shadow text-sm z-50">
+              🎤 Listening... <span className="italic">{transcript}</span>
+            </div>
+          )}
+
           {/* Chat Input */}
           <footer className="p-4 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700">
             <form onSubmit={handleSubmit} className="flex gap-2 items-center">
@@ -163,16 +201,15 @@ const App = () => {
               />
               <button
                 type="button"
-                onClick={startListening}
-                title="Start voice input"
-                aria-pressed={listening}
-                className={`px-4 py-2 rounded-lg text-white transition ${
+                onClick={toggleListening}
+                title={listening ? 'Stop Listening' : 'Start Voice Input'}
+                className={`p-3 rounded-full transition duration-300 ${
                   listening
-                    ? 'bg-red-500 hover:bg-red-600'
-                    : 'bg-green-500 hover:bg-green-600'
+                    ? 'bg-red-600 animate-pulse text-white'
+                    : 'bg-gray-200 dark:bg-gray-600 text-black dark:text-white'
                 }`}
               >
-                🎤
+                <IoMdMic size={20} />
               </button>
               <button
                 type="submit"
@@ -181,9 +218,6 @@ const App = () => {
                 Send
               </button>
             </form>
-            {listening && (
-              <p className="text-xs text-gray-500 mt-1 ml-1">🎙️ Listening…</p>
-            )}
           </footer>
         </main>
       </div>
