@@ -8,3 +8,11 @@
   background-color: rgba(0, 0, 0, 0.2);
   border-radius: 9999px;
 }
+
+:root {
+  --text-size: medium;
+}
+
+body {
+  font-size: var(--text-size);
+}
