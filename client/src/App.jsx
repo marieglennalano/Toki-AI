@@ -7,19 +7,8 @@ import Settings from './components/Settings';
 import { IoMdMic } from 'react-icons/io';
 
 const App = () => {
-  const [conversations, setConversations] = useState([
-    {
-      id: 1,
-      title: 'Welcome Chat',
-      messages: [
-        {
-          role: 'assistant',
-          content: "Hello! I'm Toki. How can I assist you today?",
-        },
-      ],
-    },
-  ]);
-  const [activeChatId, setActiveChatId] = useState(1);
+  const [conversations, setConversations] = useState([]);
+  const [activeChatId, setActiveChatId] = useState(null);
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
@@ -60,6 +49,34 @@ const App = () => {
   }
 
   const activeChat = conversations.find((chat) => chat.id === activeChatId);
+
+  useEffect(() => {
+    const storedChats = JSON.parse(localStorage.getItem('toki_chats')) || [];
+    const storedSettings = JSON.parse(localStorage.getItem('toki_settings')) || {};
+
+    setConversations(storedChats.length > 0 ? storedChats : [
+      {
+        id: 1,
+        title: 'Welcome Chat',
+        messages: [
+          {
+            role: 'assistant',
+            content: "Hello! I'm Toki. How can I assist you today?",
+          },
+        ],
+      },
+    ]);
+    setActiveChatId(storedChats.length > 0 ? storedChats[0].id : 1);
+    setDarkMode(storedSettings.darkMode ?? false);
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem('toki_chats', JSON.stringify(conversations));
+  }, [conversations]);
+
+  useEffect(() => {
+    localStorage.setItem('toki_settings', JSON.stringify({ darkMode }));
+  }, [darkMode]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
